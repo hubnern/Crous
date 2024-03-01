@@ -1,19 +1,27 @@
+use std::{collections::HashMap, fs};
+use std::process::exit;
+use serde::Deserialize;
 use scraper::{Html, Selector, ElementRef};
 use termion::color;
 use clap::Parser;
+use toml::Value;
 
-/// Récupère le menu d'un restaurant crous et l'affiche joliement dans le terminal
+/// Récupère les menus de restaurants crous et les affiche joliment dans le terminal
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Url pour récupérer le menu
-    #[arg(short, long, default_value_t = String::from("https://www.crous-bordeaux.fr/restaurant/restaurant-administratif-le-haut-carre-3/"))]
-    url: String,
+//    /// Url pour récupérer le menu
+//    #[arg(short, long, default_value_t = String::from("https://www.crous-bordeaux.fr/restaurant/restaurant-administratif-le-haut-carre-3/"))]
+//    url: String,
 
+    /// Restaurants à afficher le menu (utilise les alias)
+    restaurants: Vec<String>,
+    
     /// Nombre de jours à afficher
     #[arg(short, long, default_value_t = 1)]
-    days: u8
+    days: u8,
 }
+
 fn inner(elem: Option<ElementRef>) -> String {
     elem.map(|e| e.inner_html()).unwrap_or(String::from(""))
 }
@@ -27,21 +35,62 @@ struct Meal {
     food: String
 }
 
+#[derive(Deserialize, Debug)]
+struct Config {
+    aliases: HashMap<String, Value>
+}
+
+impl Config {
+    fn get_or_create() -> Self {
+        let opt = dirs::config_dir();
+        if opt.is_none() {
+            return Self { aliases: HashMap::new() }
+        }
+        let mut path = opt.unwrap();
+        path.push("crous");
+        path.push("crous.toml");
+        if !path.exists() {
+            let mut dir = path.clone();
+            dir.pop();
+            let _ = fs::create_dir_all(dir);
+            let _ = fs::write(&path, "[aliases]\n    ru = \"<url_du_ru>\"\n");
+            eprintln!("Configuration created in ~/.config/crous/crous.toml. Please set the url of your restaurant inside.");
+            exit(1);
+        }
+        
+        match fs::read_to_string(path) {
+            Ok(content) => match toml::from_str(&content) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Error loading config: {}", e);
+                    Config { aliases: HashMap::new() }
+                }
+            },
+            Err(e) => {
+                eprintln!("Error reading file ~/.config/crous/crous.toml: {}", e);
+                Config { aliases: HashMap::new() }
+            }
+        }
+
+    }
+}
+
 fn get_menus(url: String) -> Vec<Menu> {
-    let result = reqwest::blocking::get(url)
+    let result = reqwest::blocking::get(url.clone())
         .and_then(|resp| resp.text());
     if result.is_err() {
-        eprintln!("Error fetching data from url");
+        eprintln!("Error fetching data from url {}", url);
         return Vec::new();
     }
     let response = result.unwrap();
     let document = Html::parse_document(&response);
+
     let menu_selector = Selector::parse("div.menu").unwrap();
     let date_selector = Selector::parse("time.menu_date_title").unwrap();
     let meal_selector = Selector::parse("div.meal").unwrap();
-    //let meal_title_selector = Selector::parse("div.meal_title").unwrap();
     let meal_foodies_li_selector = Selector::parse("ul.meal_foodies>li").unwrap();
     let li_selector = Selector::parse("li").unwrap();
+
     let mut menus = Vec::new();
     for menu in document.select(&menu_selector) {
         let date = inner(menu.select(&date_selector).next());
@@ -68,20 +117,30 @@ fn get_menus(url: String) -> Vec<Menu> {
     menus
 }
 
-fn main() {
-    let args = Args::parse();
-
-    let menus = get_menus(args.url);
-    let mut days = 1;
+fn display_menus(menus: Vec<Menu>, days: u8) {
+    let mut d = 1;
     for menu in menus {
         println!("{}{}{}", color::Bg(color::Blue), menu.date, color::Bg(color::Reset));
         for meal in menu.meals {
             print!("  {}{}{}: ", color::Fg(color::Green), meal.style, color::Fg(color::Reset));
             println!("{}", meal.food);
         }
-        days += 1;
-        if days > args.days {
+        d += 1;
+        if d > days {
             break;
         }
-    } 
+    }
+}
+
+fn main() {
+    let args = Args::parse();
+    let config = Config::get_or_create();
+    for ru in args.restaurants {
+        if let Some(value) = config.aliases.get(&ru) {
+            if let Some(url) = value.as_str() {
+                let menus = get_menus(url.to_string());
+                display_menus(menus, args.days);
+            }
+        }
+    }
 }

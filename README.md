@@ -7,12 +7,25 @@ Un programme en ligne de commande simple qui récupère les menus d'un restauran
 # Utilisation
 
 ```
-Utilisation: crous [OPTIONS]
+Utilisation: crous [OPTIONS] [RESTAURANTS]...
+
+Arguments:
+  [RESTAURANTS]...  Restaurants à afficher le menu (utilise les alias)
 
 Options:
-  -u, --url <URL>    Url pour récupérer le menu [default: https://www.crous-bordeaux.fr/restaurant/restaurant-administratif-le-haut-carre-3/]
   -d, --days <DAYS>  Nombre de jours à afficher [default: 1]
 ```
+
+# Configuration
+
+Le nom des restaurants (en arguments) sont définie dans le fichier de configuration `~/.config/crous/crous.toml` avec le format suivant:
+
+```toml
+[aliases]
+    haut-carre = "https://www.crous-bordeaux.fr/restaurant/restaurant-administratif-le-haut-carre-3/"
+    ru2 = "https://www.crous-bordeaux.fr/restaurant/resto-u-n2/"
+```
+
 
 # Installation
 
@@ -20,5 +33,5 @@ Options:
 - Cloner le dépôt
 - `cd crous`
 - Compiler avec `cargo build --release` (le binaire est dans `target/release/`
-- Optionel: Installer avec `cargo install --path .`
+- Optionnel: Installer avec `cargo install --path .`
 
