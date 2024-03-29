@@ -4,17 +4,12 @@ use serde::Deserialize;
 use scraper::{Html, Selector, ElementRef};
 use termion::color;
 use clap::Parser;
-use toml::Value;
 
 /// Récupère les menus de restaurants crous et les affiche joliment dans le terminal
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-//    /// Url pour récupérer le menu
-//    #[arg(short, long, default_value_t = String::from("https://www.crous-bordeaux.fr/restaurant/restaurant-administratif-le-haut-carre-3/"))]
-//    url: String,
-
-    /// Restaurants à afficher le menu (utilise les alias)
+    /// Restaurants à afficher le menu. Les noms sont ceux inscrit comme alias dans la config. Si aucun restaurants n'est renseigné, le menu affiché sera celui du champ "default" de la config
     restaurants: Vec<String>,
     
     /// Nombre de jours à afficher
@@ -37,14 +32,15 @@ struct Meal {
 
 #[derive(Deserialize, Debug)]
 struct Config {
-    aliases: HashMap<String, Value>
+    aliases: HashMap<String, String>,
+    default: Option<String>
 }
 
 impl Config {
     fn get_or_create() -> Self {
         let opt = dirs::config_dir();
         if opt.is_none() {
-            return Self { aliases: HashMap::new() }
+            return Self { aliases: HashMap::new(), default: None }
         }
         let mut path = opt.unwrap();
         path.push("crous");
@@ -53,7 +49,7 @@ impl Config {
             let mut dir = path.clone();
             dir.pop();
             let _ = fs::create_dir_all(dir);
-            let _ = fs::write(&path, "[aliases]\n    ru = \"<url_du_ru>\"\n");
+            let _ = fs::write(&path, "default=\"ru\"\n[aliases]\n    ru = \"<url_du_ru>\"\n");
             eprintln!("Configuration created in ~/.config/crous/crous.toml. Please set the url of your restaurant inside.");
             exit(1);
         }
@@ -63,12 +59,12 @@ impl Config {
                 Ok(c) => c,
                 Err(e) => {
                     eprintln!("Error loading config: {}", e);
-                    Config { aliases: HashMap::new() }
+                    Config { aliases: HashMap::new(), default: None }
                 }
             },
             Err(e) => {
                 eprintln!("Error reading file ~/.config/crous/crous.toml: {}", e);
-                Config { aliases: HashMap::new() }
+                Config { aliases: HashMap::new(), default: None }
             }
         }
 
@@ -135,9 +131,16 @@ fn display_menus(menus: Vec<Menu>, days: u8) {
 fn main() {
     let args = Args::parse();
     let config = Config::get_or_create();
-    for ru in args.restaurants {
-        if let Some(value) = config.aliases.get(&ru) {
-            if let Some(url) = value.as_str() {
+    if args.restaurants.is_empty() {
+        if let Some(default) = config.default {
+            if let Some(url) = config.aliases.get(&default) {
+                let menus = get_menus(url.to_string());
+                display_menus(menus, args.days);
+            }
+        }
+    } else {
+        for ru in args.restaurants {
+            if let Some(url) = config.aliases.get(&ru) {
                 let menus = get_menus(url.to_string());
                 display_menus(menus, args.days);
             }

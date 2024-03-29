@@ -21,6 +21,7 @@ Options:
 Le nom des restaurants (en arguments) sont définie dans le fichier de configuration `~/.config/crous/crous.toml` avec le format suivant:
 
 ```toml
+default = "haut-carre"
 [aliases]
     haut-carre = "https://www.crous-bordeaux.fr/restaurant/restaurant-administratif-le-haut-carre-3/"
     ru2 = "https://www.crous-bordeaux.fr/restaurant/resto-u-n2/"
