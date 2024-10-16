@@ -16,6 +16,11 @@ struct Args {
     #[arg(short, long, default_value_t = 1)]
     days: u8,
 
+    /// Si il faut afficher le menu de  tous les restaurants de la config au lieu de ceux
+    /// choisis en arguments
+    #[arg(short, long)]
+    all: bool,
+
     /// Affiche les restaurants enregistrés dans la config
     #[arg(short, long)]
     list: bool,
@@ -112,7 +117,7 @@ fn get_menus(url: String) -> Vec<Menu> {
             let food = foodies
                 .select(&li_selector)
                 .map(|e| e.inner_html())
-                .map(|str| str.replace(".", "").trim().to_string())
+                .map(|str| str.replace('.', "").trim().to_string())
                 .collect::<Vec<String>>()
                 .join(", ");
             meals.push(Meal {
@@ -166,7 +171,13 @@ fn main() {
         }
         return;
     }
-    if args.restaurants.is_empty() {
+    if args.all {
+        for (name, url) in config.aliases {
+            let menus = get_menus(url);
+            println!("{}---- {} ----{}", color::Fg(color::LightRed), name.to_uppercase(), color::Fg(color::Reset));
+            display_menus(menus, args.days);
+        }
+    } else if args.restaurants.is_empty() {
         if let Some(default) = config.default {
             if let Some(url) = config.aliases.get(&default) {
                 let menus = get_menus(url.to_string());
