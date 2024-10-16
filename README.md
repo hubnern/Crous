@@ -1,6 +1,6 @@
 # Crous
 
-Un programme en ligne de commande simple qui récupère les menus d'un restaurant Crous.
+Un programme en ligne de commande simple qui récupère les menus de restaurants Crous.
 
 ![example](./example.png)
 
@@ -10,10 +10,12 @@ Un programme en ligne de commande simple qui récupère les menus d'un restauran
 Utilisation: crous [OPTIONS] [RESTAURANTS]...
 
 Arguments:
-  [RESTAURANTS]...  Restaurants à afficher le menu (utilise les alias)
+  [RESTAURANTS]...  Restaurants à afficher le menu. Les noms sont ceux inscrit comme alias dans la config. Si aucun restaurants n'est renseigné, le menu affiché sera celui du champ "default" de la config.
 
 Options:
   -d, --days <DAYS>  Nombre de jours à afficher [default: 1]
+  -a, --all          Si il faut afficher le menu de  tous les restaurants de la config au lieu de ceux choisis en arguments
+  -l, --list         Affiche les restaurants enregistrés dans la config
 ```
 
 # Configuration
