@@ -32,9 +32,10 @@ default = "haut-carre"
 
 # Installation
 
-- Installer rust et cargo (https://rustup.rs/)
-- Cloner le dépôt
-- `cd crous`
+## Cargo
 - Compiler avec `cargo build --release` (le binaire est dans `target/release/`
 - Optionnel: Installer avec `cargo install --path .`
+
+## Nix
+- Compiler avec `nix build` (le résultat est symlink dans `result/bin`
 
