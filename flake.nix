@@ -22,7 +22,7 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-      in
+      in rec
       {
         packages = rec {
           crous = pkgs.rustPlatform.buildRustPackage {
@@ -37,6 +37,8 @@
           };
           default = crous;
         };
+
+        legacyPackages = packages;
 
         devShells.default =
           with pkgs;
